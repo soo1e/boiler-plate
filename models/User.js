@@ -75,27 +75,18 @@ userSchema.methods.generateToken = function () {
     });
 };
 
-userSchema.statics.findByToken = function (token) {
+userSchema.statics.findByToken = function (token, cb) {
     const User = this;
-
-    return new Promise((resolve, reject) => {
         jwt.verify(token, 'secretToken', async (err, decoded) => {
-            if (err) {
-                return reject(err);
-            }
-
-            try {
-                const user = await User.findOne({ "_id": decoded, "token": token });
-                if (!user) {
-                    return reject({ message: 'User not found' });
-                }
-                resolve(user);
-            } catch (error) {
-                reject(error);
-            }
+                const user = await User.findOne({ "_id": decoded, "token": token })
+                .then((user) => {
+                    cb(null, user);
+            })
+            .catch ((err) => {
+                return cb(err);
+            })
         });
-    });
-};
+}
 
 const User = mongoose.model('User', userSchema)
 
