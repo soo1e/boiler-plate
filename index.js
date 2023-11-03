@@ -6,6 +6,7 @@ const cookieParser = require('cookie-parser');
 const config = require('./config/key');
 
 const { User } = require('./models/User')
+const { auth } = require('./middleware/auth')
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -71,6 +72,34 @@ app.post('/login', async (req, res) => {
         res.status(500).json({ loginSuccess: false, message: "서버 오류입니다." });
     }
 });
+
+app.get('/api/users/auth', auth, (req, res) => {
+    // 여기까지 미들웨어륾 통과해 왔다는 이야기는 Authentication이 True라는 말.
+    res.status(200).json({
+        _id: req.user._id,
+        isAdmin: req.user.role === 0 ? false : true,
+        isAuth: true,
+        email: req.user.email,
+        name: req.user.name,
+        lastname: req.user.lastname,
+        role: req.user.role,
+        image: req.user.image
+    })
+})
+
+
+app.get('/logout', auth, async (req, res) => {
+    try {
+        // 사용자의 토큰을 빈 문자열로 업데이트하여 무효화시키기
+        await User.findOneAndUpdate({ _id: req.user._id }, { token: "" });
+        return res.status(200).send({
+            success: true
+        });
+    } catch (err) {
+        console.error(err);
+        return res.json({ success: false, err });
+    }
+})
 
 
 app.listen(port, () => {

@@ -55,15 +55,6 @@ userSchema.pre('save', function (next) {
 })
 
 
-userSchema.methods.comparePassword = function (plainPassword, cb) {
-
-    //plainPassword 1234567    암호회된 비밀번호 $2b$10$l492vQ0M4s9YUBfwYkkaZOgWHExahjWC
-    bcrypt.compare(plainPassword, this.password, function (err, isMatch) {
-        if (err) return cb(err);
-        cb(null, isMatch);
-    })
-}
-
 userSchema.methods.comparePassword = function (plainPassword) {
     return new Promise((resolve, reject) => {
         bcrypt.compare(plainPassword, this.password, function (err, isMatch) {
@@ -81,6 +72,28 @@ userSchema.methods.generateToken = function () {
         user.save()
             .then(updatedUser => resolve(updatedUser))
             .catch(err => reject(err));
+    });
+};
+
+userSchema.statics.findByToken = function (token) {
+    const User = this;
+
+    return new Promise((resolve, reject) => {
+        jwt.verify(token, 'secretToken', async (err, decoded) => {
+            if (err) {
+                return reject(err);
+            }
+
+            try {
+                const user = await User.findOne({ "_id": decoded, "token": token });
+                if (!user) {
+                    return reject({ message: 'User not found' });
+                }
+                resolve(user);
+            } catch (error) {
+                reject(error);
+            }
+        });
     });
 };
 
